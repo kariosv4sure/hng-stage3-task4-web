@@ -28,8 +28,13 @@ async function loadProfiles() {
     const res = await apiGet(`/profiles?page=${page}&limit=${limit}`);
     render(res.data);
 
+    document.getElementById("totalProfiles").textContent = res.total;
+
+    const countries = new Set(res.data.map(p => p.country_name)).size;
+    document.getElementById("countries").textContent = countries;
+
     document.getElementById("pageInfo").textContent =
-      `Page ${res.page} of ${Math.ceil(res.total / res.limit)}`;
+      `Page ${page} of ${Math.ceil(res.total / res.limit)}`;
 
   } catch {
     document.getElementById("tableBody").innerHTML =
