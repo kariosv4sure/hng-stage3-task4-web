@@ -82,9 +82,12 @@ async function exportCSV() {
   a.click();
 }
 
-function logout() {
-  document.cookie = "access_token=; Max-Age=0; path=/;";
-  document.cookie = "refresh_token=; Max-Age=0; path=/;";
+async function logout() {
+  await fetch(`${API_BASE}/auth/logout`, {
+    method: "POST",
+    credentials: "include"
+  });
+
   window.location.href = "./index.html";
 }
 
