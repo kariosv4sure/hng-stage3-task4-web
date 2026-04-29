@@ -2,36 +2,32 @@ let page = 1;
 const limit = 10;
 
 document.addEventListener("DOMContentLoaded", () => {
+  init();
+});
+
+function init() {
   loadUser();
   loadProfiles();
 
-  const searchBtn = document.getElementById("searchBtn");
-  const prevBtn = document.getElementById("prevPage");
-  const nextBtn = document.getElementById("nextPage");
-  const logoutBtn = document.getElementById("logoutBtn");
-  const exportBtn = document.getElementById("exportBtn");
+  document.getElementById("searchBtn")?.addEventListener("click", search);
+  document.getElementById("prevPage")?.addEventListener("click", prevPage);
+  document.getElementById("nextPage")?.addEventListener("click", nextPage);
+  document.getElementById("logoutBtn")?.addEventListener("click", logout);
+  document.getElementById("exportBtn")?.addEventListener("click", exportCSV);
+}
 
-  if (searchBtn) searchBtn.onclick = search;
-
-  if (prevBtn) {
-    prevBtn.onclick = () => {
-      if (page > 1) {
-        page--;
-        loadProfiles();
-      }
-    };
+/* ---------------- PAGINATION ---------------- */
+function prevPage() {
+  if (page > 1) {
+    page--;
+    loadProfiles();
   }
+}
 
-  if (nextBtn) {
-    nextBtn.onclick = () => {
-      page++;
-      loadProfiles();
-    };
-  }
-
-  if (logoutBtn) logoutBtn.onclick = logout;
-  if (exportBtn) exportBtn.onclick = exportCSV;
-});
+function nextPage() {
+  page++;
+  loadProfiles();
+}
 
 /* ---------------- USER ---------------- */
 async function loadUser() {
@@ -42,11 +38,11 @@ async function loadUser() {
     const logoutBtn = document.getElementById("logoutBtn");
 
     if (userDisplay) {
-      userDisplay.textContent = res.github_username;
+      userDisplay.textContent = res.github_username || "User";
       userDisplay.classList.remove("hidden");
     }
 
-    if (logoutBtn) logoutBtn.classList.remove("hidden");
+    logoutBtn?.classList.remove("hidden");
 
   } catch {
     window.location.href = "./index.html";
@@ -58,42 +54,36 @@ async function loadProfiles() {
   try {
     const res = await apiGet(`/profiles?page=${page}&limit=${limit}`);
 
-    render(res.data);
+    render(res?.data || []);
 
-    const totalEl = document.getElementById("totalCount");
-    const countryEl = document.getElementById("countryCount");
-    const pageInfo = document.getElementById("pageInfo");
+    updateStats(res);
 
-    if (totalEl) totalEl.textContent = res.total;
-
-    const countries = new Set(res.data.map(p => p.country_name)).size;
-    if (countryEl) countryEl.textContent = countries;
-
-    if (pageInfo) {
-      pageInfo.textContent = `Page ${page} of ${Math.ceil(res.total / res.limit)}`;
-    }
-
-  } catch {
-    const table = document.getElementById("tableBody");
-
-    if (table) {
-      table.innerHTML = `
-        <tr>
-          <td colspan="5" class="p-4 text-center text-red-400">
-            Failed to load
-          </td>
-        </tr>
-      `;
-    }
+  } catch (err) {
+    console.log("Load profiles error:", err);
+    render([]);
   }
 }
 
-/* ---------------- SEARCH (FIXED 🔥) ---------------- */
-async function search() {
-  const input = document.getElementById("searchInput");
-  const q = input ? input.value.trim() : "";
+/* ---------------- STATS ---------------- */
+function updateStats(res) {
+  const totalEl = document.getElementById("totalCount");
+  const countryEl = document.getElementById("countryCount");
+  const pageInfo = document.getElementById("pageInfo");
 
-  // reset pagination on every search (IMPORTANT FIX)
+  if (totalEl) totalEl.textContent = res?.total ?? "-";
+
+  const countries = new Set((res?.data || []).map(p => p.country_name)).size;
+  if (countryEl) countryEl.textContent = countries;
+
+  if (pageInfo && res?.total) {
+    pageInfo.textContent = `Page ${page} of ${Math.ceil(res.total / limit)}`;
+  }
+}
+
+/* ---------------- SEARCH (SAFE MODE) ---------------- */
+async function search() {
+  const q = document.getElementById("searchInput")?.value?.trim();
+
   page = 1;
 
   if (!q) return loadProfiles();
@@ -103,23 +93,14 @@ async function search() {
       `/profiles/search?q=${encodeURIComponent(q)}&page=1&limit=${limit}`
     );
 
-    render(res.data);
+    render(res?.data || []);
 
     const pageInfo = document.getElementById("pageInfo");
     if (pageInfo) pageInfo.textContent = "Search results";
 
-  } catch {
-    const table = document.getElementById("tableBody");
-
-    if (table) {
-      table.innerHTML = `
-        <tr>
-          <td colspan="5" class="p-4 text-center text-red-400">
-            Search failed
-          </td>
-        </tr>
-      `;
-    }
+  } catch (err) {
+    console.log("Search error:", err);
+    render([]);
   }
 }
 
@@ -128,11 +109,11 @@ function render(data) {
   const table = document.getElementById("tableBody");
   if (!table) return;
 
-  if (!data || data.length === 0) {
+  if (!Array.isArray(data) || data.length === 0) {
     table.innerHTML = `
       <tr>
         <td colspan="5" class="p-4 text-center text-gray-500">
-          No data
+          No data found
         </td>
       </tr>
     `;
@@ -145,7 +126,7 @@ function render(data) {
       <td class="p-3">${p.gender}</td>
       <td class="p-3">${p.age}</td>
       <td class="p-3">${p.country_name}</td>
-      <td class="p-3">${Math.round(p.gender_probability * 100)}%</td>
+      <td class="p-3">${Math.round((p.gender_probability || 0) * 100)}%</td>
     </tr>
   `).join("");
 }
@@ -157,6 +138,8 @@ async function exportCSV() {
       credentials: "include"
     });
 
+    if (!res.ok) throw new Error("Export failed");
+
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
 
@@ -165,8 +148,10 @@ async function exportCSV() {
     a.download = "profiles.csv";
     a.click();
 
+    URL.revokeObjectURL(url);
+
   } catch (err) {
-    console.log("Export failed", err);
+    console.log(err);
   }
 }
 
@@ -177,6 +162,8 @@ async function logout() {
       method: "POST",
       credentials: "include"
     });
+  } catch (err) {
+    console.log(err);
   } finally {
     window.location.href = "./index.html";
   }
