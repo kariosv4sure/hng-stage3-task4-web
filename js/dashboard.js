@@ -12,22 +12,28 @@ document.addEventListener("DOMContentLoaded", () => {
   const exportBtn = document.getElementById("exportBtn");
 
   if (searchBtn) searchBtn.onclick = search;
-  if (prevBtn) prevBtn.onclick = () => {
-    if (page > 1) {
-      page--;
-      loadProfiles();
-    }
-  };
 
-  if (nextBtn) nextBtn.onclick = () => {
-    page++;
-    loadProfiles();
-  };
+  if (prevBtn) {
+    prevBtn.onclick = () => {
+      if (page > 1) {
+        page--;
+        loadProfiles();
+      }
+    };
+  }
+
+  if (nextBtn) {
+    nextBtn.onclick = () => {
+      page++;
+      loadProfiles();
+    };
+  }
 
   if (logoutBtn) logoutBtn.onclick = logout;
   if (exportBtn) exportBtn.onclick = exportCSV;
 });
 
+/* ---------------- USER ---------------- */
 async function loadUser() {
   try {
     const res = await apiGet("/auth/me");
@@ -42,32 +48,32 @@ async function loadUser() {
 
     if (logoutBtn) logoutBtn.classList.remove("hidden");
 
-  } catch (err) {
+  } catch {
     window.location.href = "./index.html";
   }
 }
 
+/* ---------------- PROFILES ---------------- */
 async function loadProfiles() {
   try {
     const res = await apiGet(`/profiles?page=${page}&limit=${limit}`);
 
     render(res.data);
 
-    // ✅ FIXED IDS (matches your HTML)
     const totalEl = document.getElementById("totalCount");
     const countryEl = document.getElementById("countryCount");
+    const pageInfo = document.getElementById("pageInfo");
 
     if (totalEl) totalEl.textContent = res.total;
 
     const countries = new Set(res.data.map(p => p.country_name)).size;
     if (countryEl) countryEl.textContent = countries;
 
-    const pageInfo = document.getElementById("pageInfo");
     if (pageInfo) {
       pageInfo.textContent = `Page ${page} of ${Math.ceil(res.total / res.limit)}`;
     }
 
-  } catch (err) {
+  } catch {
     const table = document.getElementById("tableBody");
 
     if (table) {
@@ -82,20 +88,27 @@ async function loadProfiles() {
   }
 }
 
+/* ---------------- SEARCH (FIXED 🔥) ---------------- */
 async function search() {
   const input = document.getElementById("searchInput");
   const q = input ? input.value.trim() : "";
+
+  // reset pagination on every search (IMPORTANT FIX)
+  page = 1;
 
   if (!q) return loadProfiles();
 
   try {
     const res = await apiGet(
-      `/profiles/search?q=${encodeURIComponent(q)}&page=${page}&limit=${limit}`
+      `/profiles/search?q=${encodeURIComponent(q)}&page=1&limit=${limit}`
     );
 
     render(res.data);
 
-  } catch (err) {
+    const pageInfo = document.getElementById("pageInfo");
+    if (pageInfo) pageInfo.textContent = "Search results";
+
+  } catch {
     const table = document.getElementById("tableBody");
 
     if (table) {
@@ -110,6 +123,7 @@ async function search() {
   }
 }
 
+/* ---------------- RENDER ---------------- */
 function render(data) {
   const table = document.getElementById("tableBody");
   if (!table) return;
@@ -136,6 +150,7 @@ function render(data) {
   `).join("");
 }
 
+/* ---------------- EXPORT ---------------- */
 async function exportCSV() {
   try {
     const res = await fetch(`${API_BASE}/export/profiles`, {
@@ -155,13 +170,13 @@ async function exportCSV() {
   }
 }
 
+/* ---------------- LOGOUT ---------------- */
 async function logout() {
   try {
     await fetch(`${API_BASE}/auth/logout`, {
       method: "POST",
       credentials: "include"
     });
-
   } finally {
     window.location.href = "./index.html";
   }
