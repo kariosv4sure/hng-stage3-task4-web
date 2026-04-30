@@ -317,6 +317,7 @@ async function loadProfiles() {
  */
 async function loadStats() {
     try {
+        // First get total count from a single profile request
         const res = await apiGet("/profiles?page=1&limit=1");
         
         if (res) {
@@ -324,25 +325,33 @@ async function loadStats() {
             if (totalCount) {
                 totalCount.textContent = res.total?.toLocaleString() || "0";
             }
-            
-            // Count unique countries from all data (or get from API if available)
+        }
+        
+        // Calculate unique countries from the current data
+        // We'll fetch all profiles to count unique countries (or use a large limit)
+        const allData = await apiGet("/profiles?page=1&limit=2026"); // Get all records
+        
+        if (allData && allData.data) {
             const countryCount = document.getElementById("countryCount");
             if (countryCount) {
-                // Try to get country count from a dedicated endpoint or calculate
-                try {
-                    const statsRes = await apiGet("/profiles/stats");
-                    if (statsRes && statsRes.countries) {
-                        countryCount.textContent = statsRes.countries.toLocaleString();
-                    } else {
-                        countryCount.textContent = "—";
+                // Count unique countries
+                const countries = new Set();
+                allData.data.forEach(profile => {
+                    if (profile.country_name) {
+                        countries.add(profile.country_name);
                     }
-                } catch {
-                    countryCount.textContent = "—";
-                }
+                });
+                countryCount.textContent = countries.size.toLocaleString();
             }
         }
     } catch (error) {
         console.error("❌ Failed to load stats:", error);
+        
+        // Fallback: Show dash if can't calculate
+        const countryCount = document.getElementById("countryCount");
+        if (countryCount) {
+            countryCount.textContent = "—";
+        }
     }
 }
 
