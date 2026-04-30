@@ -315,6 +315,8 @@ async function loadProfiles() {
 /**
  * Load statistics
  */
+
+/*
 async function loadStats() {
     try {
         // First get total count from a single profile request
@@ -352,6 +354,63 @@ async function loadStats() {
         if (countryCount) {
             countryCount.textContent = "—";
         }
+    }
+}
+*/
+/**
+ * Load statistics
+ */
+async function loadStats() {
+    try {
+        // Get total count
+        const res = await apiGet("/profiles?page=1&limit=1");
+        
+        if (res) {
+            const totalCount = document.getElementById("totalCount");
+            if (totalCount) {
+                totalCount.textContent = res.total?.toLocaleString() || "0";
+            }
+        }
+        
+        // Get unique countries by fetching pages
+        const countryCount = document.getElementById("countryCount");
+        if (countryCount) {
+            try {
+                let uniqueCountries = new Set();
+                let currentPage = 1;
+                let hasMore = true;
+                
+                // Fetch multiple pages to count unique countries
+                while (hasMore && currentPage <= 5) {
+                    const pageData = await apiGet(`/profiles?page=${currentPage}&limit=500`);
+                    
+                    if (pageData && pageData.data && pageData.data.length > 0) {
+                        pageData.data.forEach(profile => {
+                            if (profile.country_name) {
+                                uniqueCountries.add(profile.country_name);
+                            }
+                        });
+                        
+                        const totalPages = Math.ceil((pageData.total || 0) / 500);
+                        hasMore = currentPage < totalPages;
+                        currentPage++;
+                    } else {
+                        hasMore = false;
+                    }
+                }
+                
+                if (uniqueCountries.size > 0) {
+                    countryCount.textContent = uniqueCountries.size.toLocaleString();
+                } else {
+                    countryCount.textContent = "—";
+                }
+            } catch (e) {
+                console.log("Could not count countries:", e);
+                countryCount.textContent = "—";
+            }
+        }
+    } catch (error) {
+        console.error("❌ Failed to load stats:", error);
     }
 }
 
