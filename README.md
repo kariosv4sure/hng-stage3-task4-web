@@ -1,89 +1,104 @@
+```markdown
 # Insighta Labs+ Web Portal
 
-Live URL:  
+Dark-themed web dashboard for the Insighta Labs+ profile intelligence platform. Features GitHub OAuth login, natural language profile search, filtering, pagination, and CSV export.
+
+## Live URL
+
+```
+
 https://hng-stage3-task4-web.vercel.app
 
-Backend API:  
-https://hng-stage3-task4-backend-production.up.railway.app
+```
 
----
+## Tech Stack
 
-## 🚀 Overview
+- HTML5 / CSS3 / Vanilla JavaScript
+- Tailwind CSS (CDN)
+- Font Awesome 6 (CDN)
+- Deployed on Vercel
 
-Insighta Labs+ Web Portal is the frontend interface for the Profile Intelligence System (Stage 3).
+## Features
 
-It enables users to securely log in with GitHub OAuth and interact with profile intelligence data through a modern dashboard.
+- GitHub OAuth login with secure HTTP-only cookies
+- Dark theme UI with Tailwind CSS
+- Profile listing with pagination (10 per page)
+- Natural language search (e.g. "young males from nigeria")
+- Gender and age group filters
+- Gender confidence visualization with gradient bars
+- CSV export with download
+- Responsive design for all screen sizes
+- Automatic session check and redirect
+- Token fallback for cross-domain cookie support
 
----
+## Pages
 
-## 🔐 Authentication
+### Login Page (`index.html`)
 
-- GitHub OAuth (PKCE flow)
-- HTTP-only cookies for session security
-- Access + refresh token system
-- Protected dashboard routes
+- GitHub OAuth login button
+- Automatic session check - redirects to dashboard if already authenticated
+- Error state handling
 
----
+### Dashboard (`dashboard.html`)
 
-## 📊 Features
+- Welcome message with GitHub username
+- Total profiles count
+- Unique countries count
+- Search bar with natural language support
+- Gender and age group filters
+- Profiles table with:
+  - Gender badges (blue for male, pink for female)
+  - Confidence visualization bars
+  - Hover effects
+- Pagination controls
+- CSV export button
+- Logout button
 
-- GitHub login authentication
-- Profile listing with pagination
-- Natural language search
-- Filters (gender, age group)
-- CSV export functionality
-- User session display
-- Secure logout
+## Authentication
 
----
+- JWT tokens stored in HTTP-only cookies (primary method)
+- Token fallback via URL parameter for cross-domain scenarios
+- Credentials included in all API requests via `credentials: "include"`
+- Automatic redirect to login on 401 responses
+- Session cleared on logout (localStorage, sessionStorage, cookies)
 
-## 🧠 Backend Integration
+## Project Structure
 
-Consumes REST API from:
+```
 
-- `/api/v1/auth/*`
-- `/api/v1/profiles`
-- `/api/v1/profiles/search`
-- `/api/v1/export/profiles`
+├── index.html          # Login page
+├── dashboard.html      # Main dashboard page
+├── css/
+│   └── styles.css      # Custom styles
+└── js/
+├── api.js          # API client with authentication
+├── auth.js         # Login page logic
+└── dashboard.js    # Dashboard logic (profiles, search, export)
 
----
+```
 
-## 🏗️ Tech Stack
+## API Integration
 
-- HTML5
-- TailwindCSS
-- Vanilla JavaScript
-- FastAPI backend (external)
-- Vercel deployment
+All API requests go to the backend at:
+```
 
----
+https://hng-stage3-task4-backend-production.up.railway.app/api/v1
 
-## 🔄 Auth Flow
+```
 
-1. User clicks "Login with GitHub"
-2. Redirected to backend OAuth endpoint
-3. GitHub authorizes user
-4. Backend exchanges code for token
-5. Session stored via HTTP-only cookies
-6. User redirected to dashboard
+The `api.js` file provides reusable functions:
+- `apiGet(path)` - GET requests with auth
+- `apiPost(path, body)` - POST requests with auth
+- `apiPut(path, body)` - PUT requests with auth
+- `apiDelete(path)` - DELETE requests with auth
 
----
+## Cross-Domain Support
 
-## 📦 Deployment
+Since the frontend (Vercel) and backend (Railway) are on different domains:
+- Cookies use `SameSite=None; Secure` for cross-domain requests
+- Token fallback in URL parameter if cookies are blocked
+- CORS properly configured on backend
+```
 
-- Frontend: Vercel
-- Backend: Railway
+--
 
----
-
-## ⚠️ Notes
-
-- Requires backend to be running
-- OAuth depends on correct redirect URI configuration
-- Cookies must be enabled for session auth
-
----
-
-## 👨‍💻 Project
-
-Part of HNG Stage 3 Internship Submission
